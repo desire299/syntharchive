@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
         # FREE SYNTHS
         {
             "name": "Vital",
-            "description": "Puissant synthétiseur wavetable moderne avec une interface intuitive et des oscillateurs spectral.",
+            "description": "Le meilleur plugin VST gratuit, puissant synthétiseur wavetable moderne avec une interface intuitive et des oscillateurs spectral.",
             "price": "Gratuit",
             "type": "free",
             "category": "wavetable",
