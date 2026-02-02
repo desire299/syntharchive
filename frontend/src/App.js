@@ -163,9 +163,6 @@ function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
 
-  useEffect(() => {
-    fetchSynths();
-  }, []);
 
   const fetchSynths = async () => {
     try {
