@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, Query
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -6,7 +6,7 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List
+from typing import List, Optional
 import uuid
 from datetime import datetime, timezone
 
@@ -27,44 +27,243 @@ api_router = APIRouter(prefix="/api")
 
 
 # Define Models
-class StatusCheck(BaseModel):
-    model_config = ConfigDict(extra="ignore")  # Ignore MongoDB's _id field
+class Synth(BaseModel):
+    model_config = ConfigDict(extra="ignore")
     
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    client_name: str
+    name: str
+    description: str
+    price: str  # "Free", "$149", etc.
+    type: str  # "free" or "paid"
+    category: str  # "wavetable", "fm", "analog", "sampler", etc.
+    website_url: str
+    features: List[str]
+    image_url: str
+    compatibility: List[str]  # ["FL Studio", "Ableton", "Logic", etc.]
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-class StatusCheckCreate(BaseModel):
-    client_name: str
+class SynthCreate(BaseModel):
+    name: str
+    description: str
+    price: str
+    type: str
+    category: str
+    website_url: str
+    features: List[str]
+    image_url: str
+    compatibility: List[str]
 
-# Add your routes to the router instead of directly to app
+
+# Routes
 @api_router.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {"message": "Synth Directory API"}
 
-@api_router.post("/status", response_model=StatusCheck)
-async def create_status_check(input: StatusCheckCreate):
-    status_dict = input.model_dump()
-    status_obj = StatusCheck(**status_dict)
+@api_router.get("/synths", response_model=List[Synth])
+async def get_synths(
+    type: Optional[str] = Query(None, description="Filter by type: free or paid"),
+    category: Optional[str] = Query(None, description="Filter by category"),
+    search: Optional[str] = Query(None, description="Search by name or description")
+):
+    query = {}
     
-    # Convert to dict and serialize datetime to ISO string for MongoDB
-    doc = status_obj.model_dump()
+    if type:
+        query["type"] = type.lower()
+    
+    if category:
+        query["category"] = category.lower()
+    
+    if search:
+        query["$or"] = [
+            {"name": {"$regex": search, "$options": "i"}},
+            {"description": {"$regex": search, "$options": "i"}}
+        ]
+    
+    synths = await db.synths.find(query, {"_id": 0}).to_list(1000)
+    
+    for synth in synths:
+        if isinstance(synth.get('timestamp'), str):
+            synth['timestamp'] = datetime.fromisoformat(synth['timestamp'])
+    
+    return synths
+
+@api_router.post("/synths", response_model=Synth)
+async def create_synth(input: SynthCreate):
+    synth_dict = input.model_dump()
+    synth_obj = Synth(**synth_dict)
+    
+    doc = synth_obj.model_dump()
     doc['timestamp'] = doc['timestamp'].isoformat()
     
-    _ = await db.status_checks.insert_one(doc)
-    return status_obj
+    await db.synths.insert_one(doc)
+    return synth_obj
 
-@api_router.get("/status", response_model=List[StatusCheck])
-async def get_status_checks():
-    # Exclude MongoDB's _id field from the query results
-    status_checks = await db.status_checks.find({}, {"_id": 0}).to_list(1000)
+@api_router.post("/synths/seed")
+async def seed_synths():
+    """Seed the database with initial synth data"""
     
-    # Convert ISO string timestamps back to datetime objects
-    for check in status_checks:
-        if isinstance(check['timestamp'], str):
-            check['timestamp'] = datetime.fromisoformat(check['timestamp'])
+    # Check if already seeded
+    count = await db.synths.count_documents({})
+    if count > 0:
+        return {"message": "Database already seeded", "count": count}
     
-    return status_checks
+    synths_data = [
+        # FREE SYNTHS
+        {
+            "name": "Vital",
+            "description": "Puissant synthétiseur wavetable moderne avec une interface intuitive et des oscillateurs spectral.",
+            "price": "Gratuit",
+            "type": "free",
+            "category": "wavetable",
+            "website_url": "https://vital.audio",
+            "features": ["Wavetable spectral", "Modulation avancée", "Effets intégrés", "Interface moderne"],
+            "image_url": "https://images.unsplash.com/photo-1614935151651-0bea6508db6b?w=800",
+            "compatibility": ["FL Studio", "Ableton", "Logic Pro", "Cubase", "Reaper"]
+        },
+        {
+            "name": "Surge XT",
+            "description": "Synthétiseur hybride open-source avec 3 oscillateurs et modulation flexible.",
+            "price": "Gratuit",
+            "type": "free",
+            "category": "hybrid",
+            "website_url": "https://surge-synthesizer.github.io",
+            "features": ["Hybrid synthesis", "8 types d'oscillateurs", "Effets studio", "Open source"],
+            "image_url": "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=800",
+            "compatibility": ["FL Studio", "Ableton", "Logic Pro", "Cubase", "Reaper"]
+        },
+        {
+            "name": "Dexed",
+            "description": "Émulation précise du légendaire Yamaha DX7, parfait pour les sons FM classiques.",
+            "price": "Gratuit",
+            "type": "free",
+            "category": "fm",
+            "website_url": "https://asb2m10.github.io/dexed",
+            "features": ["Synthèse FM", "Compatible DX7", "32 algorithmes", "Banques de presets"],
+            "image_url": "https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800",
+            "compatibility": ["FL Studio", "Ableton", "Logic Pro", "Cubase", "Reaper"]
+        },
+        {
+            "name": "TAL-NoiseMaker",
+            "description": "Synthétiseur virtuel analogique avec filtres auto-oscillants et effets vintage.",
+            "price": "Gratuit",
+            "type": "free",
+            "category": "analog",
+            "website_url": "https://tal-software.com/products/tal-noisemaker",
+            "features": ["VA synthesis", "3 oscillateurs", "Juno chorus", "Filtres vintage"],
+            "image_url": "https://images.unsplash.com/photo-1563330232-57114bb0823c?w=800",
+            "compatibility": ["FL Studio", "Ableton", "Logic Pro", "Cubase", "Reaper"]
+        },
+        {
+            "name": "Helm",
+            "description": "Synthétiseur polyphonique open-source avec modulation complexe et effets intégrés.",
+            "price": "Gratuit",
+            "type": "free",
+            "category": "subtractive",
+            "website_url": "https://tytel.org/helm",
+            "features": ["32 voix polyphoniques", "Drag & drop modulation", "Open source", "Multi-plateforme"],
+            "image_url": "https://images.unsplash.com/photo-1510915228340-29c85a43dcfe?w=800",
+            "compatibility": ["FL Studio", "Ableton", "Logic Pro", "Cubase", "Reaper"]
+        },
+        
+        # PAID SYNTHS
+        {
+            "name": "Serum",
+            "description": "Le standard de l'industrie pour la synthèse wavetable avec visualisation en temps réel.",
+            "price": "$189",
+            "type": "paid",
+            "category": "wavetable",
+            "website_url": "https://xferrecords.com/products/serum",
+            "features": ["Wavetable avancé", "Visualisation temps réel", "Import audio", "Ultra clean"],
+            "image_url": "https://images.unsplash.com/photo-1519508234439-4f23643125c1?w=800",
+            "compatibility": ["FL Studio", "Ableton", "Logic Pro", "Cubase", "Reaper"]
+        },
+        {
+            "name": "Massive X",
+            "description": "Nouvelle génération du légendaire Massive par Native Instruments.",
+            "price": "$149",
+            "type": "paid",
+            "category": "wavetable",
+            "website_url": "https://www.native-instruments.com/en/products/komplete/synths/massive-x",
+            "features": ["170+ wavetables", "Routage modulaire", "Performer mode", "Effets pro"],
+            "image_url": "https://images.unsplash.com/photo-1487180144351-b8472da7d491?w=800",
+            "compatibility": ["FL Studio", "Ableton", "Logic Pro", "Cubase", "Reaper"]
+        },
+        {
+            "name": "Omnisphere 2",
+            "description": "Synthétiseur flagship de Spectrasonics avec une librairie sonore massive.",
+            "price": "$499",
+            "type": "paid",
+            "category": "hybrid",
+            "website_url": "https://www.spectrasonics.net/products/omnisphere",
+            "features": ["14,000+ sons", "Hardware integration", "Granular synthesis", "Orb controller"],
+            "image_url": "https://images.unsplash.com/photo-1598653222000-6b7b7a552625?w=800",
+            "compatibility": ["FL Studio", "Ableton", "Logic Pro", "Cubase", "Reaper"]
+        },
+        {
+            "name": "Pigments",
+            "description": "Synthétiseur wavetable/VA d'Arturia avec moteur de synthèse hybride innovant.",
+            "price": "$199",
+            "type": "paid",
+            "category": "wavetable",
+            "website_url": "https://www.arturia.com/products/software-instruments/pigments",
+            "features": ["Dual engines", "Wavetable + VA + Sample", "Séquenceurs multiples", "Effets studio"],
+            "image_url": "https://images.unsplash.com/photo-1571330735066-03aaa9429d89?w=800",
+            "compatibility": ["FL Studio", "Ableton", "Logic Pro", "Cubase", "Reaper"]
+        },
+        {
+            "name": "Phase Plant",
+            "description": "Synthétiseur modulaire semi-modulaire de Kilohearts avec routage infini.",
+            "price": "$179",
+            "type": "paid",
+            "category": "modular",
+            "website_url": "https://kilohearts.com/products/phase_plant",
+            "features": ["Modulaire", "Snap Heap intégré", "Routage flexible", "Sound design avancé"],
+            "image_url": "https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?w=800",
+            "compatibility": ["FL Studio", "Ableton", "Logic Pro", "Cubase", "Reaper"]
+        },
+        {
+            "name": "Sylenth1",
+            "description": "Synthétiseur VA classique connu pour ses sons chauds et sa faible CPU.",
+            "price": "$139",
+            "type": "paid",
+            "category": "analog",
+            "website_url": "https://www.lennardigital.com/sylenth1",
+            "features": ["4 oscillateurs unison", "Filtres analogiques", "Low CPU", "Sons classiques"],
+            "image_url": "https://images.unsplash.com/photo-1499415479124-43c32433a620?w=800",
+            "compatibility": ["FL Studio", "Ableton", "Logic Pro", "Cubase", "Reaper"]
+        },
+        {
+            "name": "Avenger",
+            "description": "Powerhouse de Vengeance Sound avec 8 oscillateurs et modulation avancée.",
+            "price": "$227",
+            "type": "paid",
+            "category": "hybrid",
+            "website_url": "https://www.vengeance-sound.com/avenger",
+            "features": ["8 oscillateurs", "Multi-engine", "Arpeggiator avancé", "Drummaps"],
+            "image_url": "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800",
+            "compatibility": ["FL Studio", "Ableton", "Logic Pro", "Cubase", "Reaper"]
+        },
+        {
+            "name": "Analog Lab",
+            "description": "Collection de presets des synthés vintage légendaires d'Arturia.",
+            "price": "$99",
+            "type": "paid",
+            "category": "analog",
+            "website_url": "https://www.arturia.com/products/software-instruments/analoglab",
+            "features": ["6500+ presets", "17 synthés classiques", "Browser intuitif", "Performances live"],
+            "image_url": "https://images.unsplash.com/photo-1542272201-b1ca555f8505?w=800",
+            "compatibility": ["FL Studio", "Ableton", "Logic Pro", "Cubase", "Reaper"]
+        }
+    ]
+    
+    for synth_data in synths_data:
+        synth_obj = Synth(**synth_data)
+        doc = synth_obj.model_dump()
+        doc['timestamp'] = doc['timestamp'].isoformat()
+        await db.synths.insert_one(doc)
+    
+    return {"message": "Database seeded successfully", "count": len(synths_data)}
+
 
 # Include the router in the main app
 app.include_router(api_router)
