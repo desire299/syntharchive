@@ -6,8 +6,155 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+  synths_data = [
+        # FREE SYNTHS
+        {
+            "name": "Vital",
+            "description": "Puissant synthétiseur wavetable moderne avec une interface intuitive et des oscillateurs spectral.",
+            "price": "Gratuit",
+            "type": "free",
+            "category": "wavetable",
+            "website_url": "https://vital.audio",
+            "features": ["Wavetable spectral", "Modulation avancée", "Effets intégrés", "Interface moderne"],
+            "image_url": "https://images.unsplash.com/photo-1634286050107-567499885ff9?w=800",
+            "compatibility": ["FL Studio", "Ableton", "Logic Pro", "Cubase", "Reaper"]
+        },
+        {
+            "name": "Surge XT",
+            "description": "Synthétiseur hybride open-source avec 3 oscillateurs et modulation flexible.",
+            "price": "Gratuit",
+            "type": "free",
+            "category": "hybrid",
+            "website_url": "https://surge-synthesizer.github.io",
+            "features": ["Hybrid synthesis", "8 types d'oscillateurs", "Effets studio", "Open source"],
+            "image_url": "https://images.unsplash.com/photo-1761503588211-1ba834b55b48?w=800",
+            "compatibility": ["FL Studio", "Ableton", "Logic Pro", "Cubase", "Reaper"]
+        },
+        {
+            "name": "Dexed",
+            "description": "Émulation précise du légendaire Yamaha DX7, parfait pour les sons FM classiques.",
+            "price": "Gratuit",
+            "type": "free",
+            "category": "fm",
+            "website_url": "https://asb2m10.github.io/dexed",
+            "features": ["Synthèse FM", "Compatible DX7", "32 algorithmes", "Banques de presets"],
+            "image_url": "https://images.unsplash.com/photo-1758179762756-7ad05acc2e33?w=800",
+            "compatibility": ["FL Studio", "Ableton", "Logic Pro", "Cubase", "Reaper"]
+        },
+        {
+            "name": "TAL-NoiseMaker",
+            "description": "Synthétiseur virtuel analogique avec filtres auto-oscillants et effets vintage.",
+            "price": "Gratuit",
+            "type": "free",
+            "category": "analog",
+            "website_url": "https://tal-software.com/products/tal-noisemaker",
+            "features": ["VA synthesis", "3 oscillateurs", "Juno chorus", "Filtres vintage"],
+            "image_url": "https://images.unsplash.com/photo-1760411070288-e0d211aa6c2c?w=800",
+            "compatibility": ["FL Studio", "Ableton", "Logic Pro", "Cubase", "Reaper"]
+        },
+        {
+            "name": "Helm",
+            "description": "Synthétiseur polyphonique open-source avec modulation complexe et effets intégrés.",
+            "price": "Gratuit",
+            "type": "free",
+            "category": "subtractive",
+            "website_url": "https://tytel.org/helm",
+            "features": ["32 voix polyphoniques", "Drag & drop modulation", "Open source", "Multi-plateforme"],
+            "image_url": "https://images.unsplash.com/photo-1634286051376-940ff8525141?w=800",
+            "compatibility": ["FL Studio", "Ableton", "Logic Pro", "Cubase", "Reaper"]
+        },
+        
+        # PAID SYNTHS
+        {
+            "name": "Serum",
+            "description": "Le standard de l'industrie pour la synthèse wavetable avec visualisation en temps réel.",
+            "price": "$189",
+            "type": "paid",
+            "category": "wavetable",
+            "website_url": "https://xferrecords.com/products/serum",
+            "features": ["Wavetable avancé", "Visualisation temps réel", "Import audio", "Ultra clean"],
+            "image_url": "https://images.unsplash.com/photo-1765448999810-528c435f2ed6?w=800",
+            "compatibility": ["FL Studio", "Ableton", "Logic Pro", "Cubase", "Reaper"]
+        },
+        {
+            "name": "Massive X",
+            "description": "Nouvelle génération du légendaire Massive par Native Instruments.",
+            "price": "$149",
+            "type": "paid",
+            "category": "wavetable",
+            "website_url": "https://www.native-instruments.com/en/products/komplete/synths/massive-x",
+            "features": ["170+ wavetables", "Routage modulaire", "Performer mode", "Effets pro"],
+            "image_url": "https://images.unsplash.com/photo-1741746239350-9021ddfa3d59?w=800",
+            "compatibility": ["FL Studio", "Ableton", "Logic Pro", "Cubase", "Reaper"]
+        },
+        {
+            "name": "Omnisphere 2",
+            "description": "Synthétiseur flagship de Spectrasonics avec une librairie sonore massive.",
+            "price": "$499",
+            "type": "paid",
+            "category": "hybrid",
+            "website_url": "https://www.spectrasonics.net/products/omnisphere",
+            "features": ["14,000+ sons", "Hardware integration", "Granular synthesis", "Orb controller"],
+            "image_url": "https://images.unsplash.com/photo-1708395259847-59e3bc3a8cf9?w=800",
+            "compatibility": ["FL Studio", "Ableton", "Logic Pro", "Cubase", "Reaper"]
+        },
+        {
+            "name": "Pigments",
+            "description": "Synthétiseur wavetable/VA d'Arturia avec moteur de synthèse hybride innovant.",
+            "price": "$199",
+            "type": "paid",
+            "category": "wavetable",
+            "website_url": "https://www.arturia.com/products/software-instruments/pigments",
+            "features": ["Dual engines", "Wavetable + VA + Sample", "Séquenceurs multiples", "Effets studio"],
+            "image_url": "https://images.unsplash.com/photo-1758179761295-e2366ee41eee?w=800",
+            "compatibility": ["FL Studio", "Ableton", "Logic Pro", "Cubase", "Reaper"]
+        },
+        {
+            "name": "Phase Plant",
+            "description": "Synthétiseur modulaire semi-modulaire de Kilohearts avec routage infini.",
+            "price": "$179",
+            "type": "paid",
+            "category": "modular",
+            "website_url": "https://kilohearts.com/products/phase_plant",
+            "features": ["Modulaire", "Snap Heap intégré", "Routage flexible", "Sound design avancé"],
+            "image_url": "https://images.unsplash.com/photo-1708395260005-857cbefd05a4?w=800",
+            "compatibility": ["FL Studio", "Ableton", "Logic Pro", "Cubase", "Reaper"]
+        },
+        {
+            "name": "Sylenth1",
+            "description": "Synthétiseur VA classique connu pour ses sons chauds et sa faible CPU.",
+            "price": "$139",
+            "type": "paid",
+            "category": "analog",
+            "website_url": "https://www.lennardigital.com/sylenth1",
+            "features": ["4 oscillateurs unison", "Filtres analogiques", "Low CPU", "Sons classiques"],
+            "image_url": "https://images.unsplash.com/photo-1766182065635-75b013345dc3?w=800",
+            "compatibility": ["FL Studio", "Ableton", "Logic Pro", "Cubase", "Reaper"]
+        },
+        {
+            "name": "Avenger",
+            "description": "Powerhouse de Vengeance Sound avec 8 oscillateurs et modulation avancée.",
+            "price": "$227",
+            "type": "paid",
+            "category": "hybrid",
+            "website_url": "https://www.vengeance-sound.com/avenger",
+            "features": ["8 oscillateurs", "Multi-engine", "Arpeggiator avancé", "Drummaps"],
+            "image_url": "https://images.unsplash.com/photo-1769755031384-e8d5f1c2ea18?w=800",
+            "compatibility": ["FL Studio", "Ableton", "Logic Pro", "Cubase", "Reaper"]
+        },
+        {
+            "name": "Analog Lab",
+            "description": "Collection de presets des synthés vintage légendaires d'Arturia.",
+            "price": "$99",
+            "type": "paid",
+            "category": "analog",
+            "website_url": "https://www.arturia.com/products/software-instruments/analoglab",
+            "features": ["6500+ presets", "17 synthés classiques", "Browser intuitif", "Performances live"],
+            "image_url": "https://images.unsplash.com/photo-1573871518064-2b8ce743ceed?w=800",
+            "compatibility": ["FL Studio", "Ableton", "Logic Pro", "Cubase", "Reaper"]
+        }
+    ]
+
 
 function App() {
   const [synths, setSynths] = useState([]);
